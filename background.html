@@ -61,9 +61,8 @@
             
                 //Parse the response html.
                 var parsed_results = parseResults(response.html);
-
-                console.log("PARSED_RESULT", parsed_results);
-
+                
+                //Suggest the formatted result to the Omnibox.
                 callback.call(null, formatResults(parsed_results, query));
             }
        }
