@@ -15,7 +15,8 @@ I know it's not strictly in alignment with the requirement of the competition,
 but I hope it creates enough value for the community nonetheless.
 
 Currently the extension is unpublished in the Web Store; I'll probably get it 
-published in the next week or two.
+published in the next week or two. The only way to test it currently is to 
+load it as an unpacked extension on the Developer mode.
 
 ##Contact
 Contact me at garindraprahandono@gmail.com.
