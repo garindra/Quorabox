@@ -1,0 +1,196 @@
+<script>
+    
+    var QUORA_TYPEAHEAD_URL = "http://www.quora.com/ajax/full_navigator_results" +
+                              "?&data=%7B%7D&___W2_windowId=__quorabox__",
+        pending_request; 
+    
+    chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
+  
+        //Cancel pending request if there's one.
+        if(pending_request) {
+
+            pending_request.onreadystatechange = null;
+            pending_request.abort();
+            pending_request = null;
+        }
+        
+        setDefaultSuggestion(text);
+        
+        //Send the actual typeahead request to Quora server.
+        pending_request = sendTypeaheadRequest(text, suggest);
+    });
+
+    chrome.omnibox.onInputEntered.addListener(function(text) {
+        
+        //If it's not a Quora url, then we'll just forward
+        //them to Quora search page along with the appropriate query word.
+        var url = _isQuoraUrl(text) ? text : 'http://quora.com/search?q=' + text;
+        
+        changeTabURL(url);
+    });
+
+    function setDefaultSuggestion(text) {
+        
+        var description; 
+
+        if(text) { 
+
+            description =  'Get complete Quora results for ' +
+                                '<match>"' + text + '"</match>';
+        } else {
+
+            description = 'Search your Boards and All of Quora';
+        }
+        
+        chrome.omnibox.setDefaultSuggestion({description:description});
+    }
+    
+    function sendTypeaheadRequest(query, callback) {
+
+       var xhr = new XMLHttpRequest();
+
+       xhr.open("GET", QUORA_TYPEAHEAD_URL + "&q=" + query, true);
+
+       xhr.onreadystatechange = function() {
+            
+            if (xhr.readyState == 4) {
+            
+                pending_request = null;
+
+                var response = JSON.parse(xhr.responseText);
+            
+                //Parse the response html.
+                var parsed_results = parseResults(response.html);
+
+                console.log("PARSED_RESULT", parsed_results);
+
+                callback.call(null, formatResults(parsed_results, query));
+            }
+       }
+
+       xhr.send();
+
+       return xhr;
+    }
+        
+    function changeTabURL(url) {
+
+        chrome.tabs.getSelected(null, function(tab) {
+
+            chrome.tabs.update(tab.id, {url : url});
+        });
+    }
+     
+    function parseResults(html) {
+        
+        var results = [],
+            //Create a div as a wrapper for our typeahead results extraction.
+            wrapper = document.createElement("div");
+        
+        //Insert the typeahead raw html string to the wrapper, 
+        //and let it be constructed into actual DOM structure.
+        wrapper.innerHTML = html;
+        
+        var lis = wrapper.querySelectorAll('li');
+
+        for(var i = 0, _ln = lis.length; i < _ln; i++) {
+
+            var li = lis[i];
+        
+            if(_isValidResult(li)) {
+                
+                var result = _buildResult(li);
+                
+                if(result) results.push(result);
+            }
+        }
+
+        return results;
+    }
+     
+    //Format the parsed result to something that the Omnibox could display prettily.
+    function formatResults(results, query) {
+        
+        var formatted_results = [];
+
+        for(var i = 0, _ln = results.length; i < _ln; i++) {
+            
+            var result = {
+
+                content : _formatResultContent(results[i]),
+                description : _formatResultDescription(results[i], query)
+            };
+
+            formatted_results.push(result);
+        }
+
+        return formatted_results;
+    }
+
+    function _formatResultContent(result) {
+        
+        return 'http://quora.com' + result.url;
+    }
+
+    function _formatResultDescription(result, query) {
+            
+        //Wrap the matching phrases
+        var description = _wrapMatchingPhrases(result.text, query); 
+        
+        //Encode ampersands
+        description =  description.replace(/&/i, '&amp;');
+        
+        //Show the type
+        description += ' <dim> - ' + result.type + '</dim>';
+
+        return description;
+    }
+    
+    //Checks if a particular LI node is worthy of Omnibox placement.
+    //(It has to be a question, topic, board, or user profile).
+    function _isValidResult(li) {
+
+        return li.className.match(/(?:^|\s)(question|topic|board|text)(?:$|\s)/);
+    }
+
+    function _isQuoraUrl(url) {
+        
+        return url.indexOf("http://quora.com") === 0;
+    }
+
+    function _buildResult(li) {
+        
+        try {
+
+            var result = {
+                
+                "url" : li.querySelector('a.result_item').getAttribute('href'),
+                "text" : li.querySelector('.text').innerText,
+                "type" : _deduceResultTypeFromClassName(li.className)
+            }
+
+        } catch(e) {
+
+            return;
+        }
+
+        return result;
+    }
+
+    function _deduceResultTypeFromClassName(className) {
+        
+        if(className.match(/question/)) return "Question";
+        else if(className.match(/topic/)) return "Topic";
+        else if(className.match(/board/)) return "Board";
+        else if(className.match(/text/)) return "Profile";
+        else return "";
+    }
+
+    function _wrapMatchingPhrases(text, query) {
+         
+        return text.replace(new RegExp(query.split(' ').join('|'), "i"), function(s) {
+            
+            return "<match>" + s + "</match>";
+        });
+    }
+</script>
