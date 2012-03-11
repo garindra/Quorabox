@@ -61,8 +61,9 @@
             
                 //Parse the response html.
                 var parsed_results = parseResults(response.html);
-                
-                //Suggest the formatted result to the Omnibox.
+
+                console.log("PARSED_RESULT", parsed_results);
+
                 callback.call(null, formatResults(parsed_results, query));
             }
        }
@@ -187,7 +188,7 @@
 
     function _wrapMatchingPhrases(text, query) {
          
-        return text.replace(new RegExp(query.split(' ').join('|'), "i"), function(s) {
+        return text.replace(new RegExp(query.split(' ').join('|'), "gi"), function(s) {
             
             return "<match>" + s + "</match>";
         });
