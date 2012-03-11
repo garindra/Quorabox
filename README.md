@@ -14,5 +14,8 @@ and my day job workload isn't on its all-time high, I thought why not create it 
 I know it's not strictly in alignment with the requirement of the competition,
 but I hope it creates enough value for the community nonetheless.
 
+Currently the extension is unpublished in the Web Store; I'll probably get it 
+published in the next week or two.
+
 ##Contact
 Contact me at garindraprahandono@gmail.com.
